@@ -19,6 +19,7 @@
                         <th scope="col">Starting Date</th>
                         <th scope="col">Ending Date</th>
                         <th scope="col">Time Left</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="displayTask" class="bg-green-200">
@@ -113,6 +114,34 @@
                 `;
                 displayTask.appendChild(row)
             });
+
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', handleDeleteTask);
+            });
+        }
+
+        // For deleting Task
+        async function handleDeleteTask(event) {
+            const taskId = event.target.getAttribute('data-id');
+            try {
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'DELETE',
+                });
+
+                if(!response.ok) {
+                    console.log('Failed to delete task in handleDeleteTask');
+                    throw new Error('Failed to delete task ....');
+                }
+
+                const result  = await response.json();
+                loadingMessage.textContent = `Task deleted successfully`;
+                loadingMessage.classList.remove('error');
+                loadingMessage.classList.add('success');
+                fetchAllTasks();
+            } catch(error) {
+                loadingMessage.textContent = `Error: ${error.message}`;
+                loadingMessage.classList.add('error');
+            }
         }
 
         // Sending data from the same frontend

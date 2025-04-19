@@ -3,6 +3,7 @@ const path = require('path')
 const PORT = 8000
 const cors = require('cors')
 const fs = require('fs')
+const { constants } = require('buffer')
 
 const app = express()
 app.use(express.json())
@@ -28,7 +29,8 @@ function writeTasksToFile(tasks) {
         fs.writeFileSync(DATE_FILE, JSON.stringify(tasks,null, 2), 'utf8');
         return true;
     } catch(error) {
-        
+        console.error('Error writing task file', error);
+        return false;
     }
 }
 
@@ -60,11 +62,25 @@ app.post('/tasks', (req, res) => {
     }
 })
 
-// app.delete('/task/:id', (req, res) => {
-//     const taskId = parseInt(body.params.id);
+// to delete task
+app.delete('/tasks/:id', (req, res) => {
+    const taskId = parseInt(req.params.id);
 
-//     const taskIndex
-// })
+    const taskIndex = tasks.findIndex(task => task.id === taskId);
+
+    if(taskIndex === -1) {
+        console.log('Task not found');
+        return res.status(404).json({error: 'Task not found'});
+    }
+
+    const deletedTask = tasks.splice(taskIndex, 1)[0]; // I added this because after splicing it returns an array so i want to get the object
+    if(writeTasksToFile(tasks)) {
+        return res.json({message: 'Task deleted successfully', deletedTask});
+    } else {
+        console.log("Failed to delete task");
+        return res.status(500).json({error: 'Failed to delete task'});
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`The server is running at http://localhost:${PORT}`);
