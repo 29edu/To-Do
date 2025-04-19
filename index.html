@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-screen flex flex-col">
+    <h1 class="bg-red-200 text-2xl text-center">To Do List</h1> 
+    <div class="w-[60%] mx-auto m-5">
+        <div class="flex flex-col">
+            <table class="text-center w-full">
+                <thead class="bg-gray-200 ">
+                    <tr> 
+                        <th scope="col">S.No</th>   
+                        <th scope="col" class="py-3">Priority</th>
+                        <th scope="col">Task</th>
+                        <th scope="col">Starting Date</th>
+                        <th scope="col">Ending Date</th>
+                        <th scope="col">Time Left</th>
+                    </tr>
+                </thead>
+                <tbody id="displayTask" class="bg-green-200">
+                    <!-- Display Task -->
+                </tbody>
+            </table>
+        </div>
+        <p id="loadingMessage">loading Message...</p>
+        <form method="POST" id="formMethod" class=" bg-gray-200 my-5 py-5 gap-y-5">
+            <div>
+                <label for="priorityType">Priority</label>
+                <select id="priorityType" name="priorityType">
+                    <option value="S">S</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                </select>
+            </div>
+            <div>
+                <label for="task">Task</label>
+                <input class="border-2 border-black" id="task" type="text" required>
+            </div>
+            <div>
+                <label for="startingDate">Starting Date</label> 
+                <input class="border-2 border-black" id="startingDate" type="date" required>
+            </div>
+            <div>
+                <label for="endingDate">Ending Date</label>
+                <input id="endingDate" type="date" required>
+            </div>
+            <button type="submit">Add</button>
+        </form>
+    </div>
+    <script>
+        let API_URL = 'http://localhost:8000';
+        let displayTask = document.getElementById("displayTask")
+        
+        let loadingMessage = document.getElementById('loadingMessage')
+        let formMethod = document.getElementById('formMethod')
+        
+
+        document.addEventListener("DOMContentLoaded", fetchAllTasks);
+        formMethod.addEventListener('submit', handleAddTask);
+
+        // Calculation of time Left
+        function timeLeft_calculation(startingDate, endingDate) {
+            const start = new Date(startingDate);
+            const end = new Date(endingDate);
+            const diffInMs = end - start; // Difference in milliseconds
+            const diffInHours = diffInMs / (1000*60*60);
+
+            return Math.floor(diffInHours);
+        }
+
+        // Getting All data from backend
+        async function fetchAllTasks() {
+            try {
+                const response = await fetch(`${API_URL}/tasks`);
+                if(!response.ok) {
+                    throw new Error('Failed to catch Data');
+                    console.log("Failed to catch Date");
+                }
+
+                const tasks = await response.json()
+                displayAllTask(tasks)
+                loadingMessage.textContent='Success'
+
+            } catch(error) {
+                loadingMessage.textContent=`Failed to fetch the Task ${error.message}`
+                loadingMessage.classList.add('Error');
+            }
+        }
+
+        // Showing data on the screen
+        function displayAllTask(tasks) {
+            displayTask.innerHTML = ""; // clear existing row first
+
+            tasks.forEach((Task)=> {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${Task.id}</td>
+                    <td>${Task.priority}</td>
+                    <td>${Task.task}</td>
+                    <td>${Task.startingDate}</td>
+                    <td>${Task.endingDate}</td>
+                    <td>${Task.timeLeft}</td>
+                    <td>
+                        <button class="delete-btn bg-red-500 text-white px-2 py-1 rounded" data-id="${Task.id}">Delete</button>
+                    </td>
+                `;
+                displayTask.appendChild(row)
+            });
+        }
+
+        // Sending data from the same frontend
+        async function handleAddTask(event) {
+            event.preventDefault();
+
+            const task = document.getElementById('task').value.trim();
+            const startingDate = document.getElementById('startingDate').value;
+            const endingDate = document.getElementById('endingDate').value;
+            const priority = document.getElementById('priorityType').value;
+
+            if(!task || !startingDate || !endingDate || !priority) {
+                loadingMessage.textContent = 'Please Enter all details';
+                console.log('Somethig is missing in the form field so fill all');
+                return;
+            }
+            const timeLeft = timeLeft_calculation(startingDate, endingDate);
+            const TASK = {priority, task, startingDate, endingDate, timeLeft};
+
+            try {
+                const response = await fetch(`${API_URL}/tasks`, {
+                    method:'POST',
+                    headers : {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify(TASK)
+
+                });
+                
+                if(!response) {
+                    throw new Error('Failed to add Book');
+                    console.log('Some problem is occruing in the handleAddBook');
+                }
+
+                const addedTask = await response.json();
+
+                loadingMessage.textContent = `Book "${addedTask.task}" added Successfully`
+                loadingMessage.classList.remove('error');
+                loadingMessage.classList.add('success');
+                formMethod.reset();
+                fetchAllTasks();
+            } catch(error) {
+                loadingMessage.textContent = `Error: ${error.message}`;
+            }
+        }
+
+    </script>
+</body>
+</html>
